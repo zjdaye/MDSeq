@@ -1,0 +1,19 @@
+Package: MDSeq
+Type: Package
+Title: Gene expression mean and variability analysis for RNA-seq counts
+Version: 1.0.5
+Date: 2017-02-23
+Author: Di Ran, Z. John Daye
+Maintainer: Z. John Daye <zhongyindaye@gmail.com>
+Description: This package allows for the analysis of both gene expression mean and variability on RNA-seq counts, as described in Ran and Daye (2017).  A zero-inflated mean-dispersion model is applied, based on the coefficient of dispersion.  Generalized linear models (GLMs) are implemented that can incorporate treatment effects and additional covariates on both the mean and dispersion.   The package provides comprehensive features to model technical excess zeros, identify outliers efficiently, and evaluate differential expressions at biologically interesting levels.
+License: GPLv3
+Depends: R (>= 3.0.0)
+Imports: edgeR, cqn, quadprog, VarianceGamma, parallel, gtools
+LazyData: TRUE
+Suggests: knitr, rmarkdown
+VignetteBuilder: knitr
+URL: https://github.com/zjdaye/MDSeq
+Repository:
+RoxygenNote: 5.0.1
+NeedsCompilation: no
+Packaged: 2017-03-06 00:47:51 UTC; randi
