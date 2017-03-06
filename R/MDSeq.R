@@ -156,7 +156,7 @@ MDSeq <- function(count, X = NULL, U = NULL, contrast = list(mean=NULL,dispersio
     
     require(parallel)
     
-    no_cores <- detectCores() - 1
+    no_cores <- detectCores(all.tests=TRUE) - 1
     if(mc.cores > no_cores) { 
       mc.cores <- no_cores
       if (verbose) message("Only ", mc.cores, " threads can use!")
