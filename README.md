@@ -1,3 +1,6 @@
+---
+output: pdf_document
+---
 ### MDSeq
 
 MDSeq: Gene expression mean and variability analysis for RNA-seq counts.
@@ -8,7 +11,7 @@ MDSeq: Performs analysis of both gene expression mean and variability on RNA-seq
 
 This package corresponds to the following paper, where further details can be found:
 
-- Ran, Di, and Z. John Daye (2017). "Gene Expression Variability and the Analysis of Large-Scale RNA-Seq Studies with the MDSeq."
+- Ran, Di, and Z. John Daye (2017). "Gene Expression Variability and the Analysis of Large-Scale RNA-Seq Studies with the MDSeq." *Nucleic Acids Research*. doi: 10.1093/nar/gkx456.
 
 
 #### Installation
