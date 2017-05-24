@@ -2,7 +2,7 @@
 title: "MDSeq: Gene expression mean and variability analysis for RNA-seq counts"
 output: rmarkdown::pdf_document
 author: Di Ran and Z. John Daye
-date: "March 3, 2017"
+date: "March 23, 2017"
 bibliography: ref.bib
 vignette: >
   %\VignetteIndexEntry{MDSeq user guide}
@@ -88,8 +88,7 @@ summary(factor(group))
 
 We could filter out lowly expressed genes that provide little information for gene expression analysis. The function *filter.counts()* is provided in the MDSeq to filter lowly expressed genes. By default, it will remove genes whose mean counts per million (cpm) is less than 0.05. cpm is calculated using the edgeR package [@robinson2010edger]. In this example, we applied a more stringent threshold with mean cpm greater than 0.1. As a result, 21992 high-quality genes were obtained from the original 49722 genes. We highly recommend users to remove lowly expressed genes for robust analysis of gene expression mean and variability. Different criteria or other methods can also be applied. For example, one could filter out more genes by setting a higher cutoff point of cpm; or one could include more genes by setting a smaller cutoff point. 
 
-Since the MDSeq evaluates relative differences between treatments, results may be effected by technical biases due to compositional differences among libraries, and technical biasness should be taken into account by normalization. In this example, we computed the TMM normalization factors [@robinson2010edger].  The normalization factors can be incorporated, in the MDSeq, as either normalized counts or offsets in the mean-dispersion GLMs.  Offsets can be applied in the function *MDSeq()* by inputing normalization factors with the *offsets* parameter.  The MDSeq also provides the function *normalize.counts()* which can calculate normalized counts based on different normalization methods, such as "upperquartile" [@bullard2010evaluation] and "RLE" [@anders2010differential]. User could also apply more complex normalization approaches such as the "cqn", which considers adjustment for both gene length and GC content. This optional method depends on the implement in R package "cqn" [@hansen2012removing]. 
-
+Since the MDSeq evaluates relative differences between treatments, results may be effected by technical biases due to compositional differences among libraries, and technical biasness should be taken into account by normalization. In this example, we computed the TMM normalization factors [@robinson2010edger].  The normalization factors can be incorporated, in the MDSeq, as either normalized counts or offsets in the mean-dispersion GLMs.  The MDSeq provides the function *normalize.counts()* which can calculate normalized counts based on different normalization methods, such as "upperquartile" [@bullard2010evaluation] and "RLE" [@anders2010differential]. User could also apply more complex normalization approaches such as the "cqn", which considers adjustment for both gene length and GC content. This optional method depends on the implementation in the R package "cqn" [@hansen2012removing]. Offsets in the GLMs can also be applied in the function *MDSeq()* by incorporating normalization factors with the *offsets* parameter.  In the analysis of large-scale RNA-seq data, the approaches of using normalized counts and offsets in the GLMs are largely equivalent, as effects of discretizing normalized counts are minute. However, in computing the mean-dispersion model, the dispersion of normalized counts are assumed to be overdispersed with $\phi>1$ when normalized counts are used, whereas the dispersion of raw counts are assumed to be overdispersed with $\phi_{raw}>1$ when offsets in the GLMs are applied.  Further details are provided in Supplementary Methods of Ran and Daye (2017).
 
 ```r
 # lowly expressed genes were filtered by mean cpm value across all samples
@@ -97,9 +96,13 @@ dat.filtered <- filter.counts(dat, mean.cpm.cutoff = 0.1)
 dim(dat.filtered)
 [1] 21992   200
 
-# inlcuding normalization factor as an offset in mean-dispersion GLM
-# alternatively, normalized counts can be used as input
-# require(edgeR)
+# Using normalized counts 
+dat.normalized <- normalize.counts(dat.filtered, group=group, method="TMM")
+Using TMM normaliztion.
+Calculating normalization(scaling) factors with the TMM method.
+Adjusting counts to rescaling factors.
+
+# including normalization factor as an offset in the mean-dispersion GLMs
 cnf <- calcNormFactors(dat.filtered, method="TMM") 
 libsize <- colSums(dat.filtered)              #normalization factor
 rellibsize <- libsize/exp(mean(log(libsize))) #relative library size
@@ -233,43 +236,42 @@ In this example, we can apply two possible comparisons "case vs. control" or "co
 
 Outlier detection is an important step in RNA-seq studies to allow robust model estimation and inference. The MDSeq provides a computationally efficient procedure to detect outliers that are influential for statistical inference on a given set of parameters of interest [@MDSeq2016]. The function *remove.outlier()* will remove outliers and provide a summary of outlier detection.  A count matrix of RNA-seq counts will be outputted, in which outliers are set to NA.  A summary indicates the status (label=0 for successful detection) and numbers of outliers found at each gene.  Outliers will be ignored in ensuing analyses.
 
-After outlier detection, outliers within a gene were replaced by *NA*.  The mean-dispersion GLM utilizes the observed Fisher information to compute the variance-covariance matrix.  In some rare scenarios, the observed Fisher information may be non-invertible.  An error is flagged in these scenarios, even though an estimate may still be available.  We recommend removing those genes with nonzero error flags from downstream analysis. Using the first 100 genes, we removed 1 gene and obtained 99 genes. Outliers were replaced by *NA* in the output.
+After outlier detection, outliers within a gene were replaced by *NA*.  The mean-dispersion GLM utilizes the observed Fisher information to compute the variance-covariance matrix.  In some rare scenarios, the observed Fisher information may be non-invertible.  An error is flagged in these scenarios, even though an estimate may still be available.  We recommend removing those genes with nonzero error flags from downstream analysis. Using the first 1,000 genes, we removed 2 genes and obtained 998 genes. Outliers were replaced by *NA* in the output.
 
 
 ```r
 # Check outliers using parallel process with 4 threads
 # For the sake of simplicity, we demonstrate outlier detection 
-# by using the first 100 genes.
+# by using the first 1,000 genes.
 
-dat.checked <- remove.outlier(dat.filtered[1:100, ], X=X, U=X, 
-                              contrast = groups, offsets = nf, 
-                              mc.cores = 4)
+dat.checked <- remove.outlier(dat.normalized[1:1000, ], X=X, U=X, 
+                              contrast = groups, mc.cores = 4)
 4 threads are using!
-Total time elapsed:9.5 seconds
+Total time elapsed:62.74 seconds
 
-head(dat.checked$outlier)
+head(dat.checked$outliers)
        status num.outliers
-gene1       0            3
+gene1       0            1
 gene3       0            0
-gene5       2           NA
+gene5       0            1
 gene7       0            0
-gene9       0            4
-gene10      0            2
+gene9       0            2
+gene10      0            0
 
 # status of outlier checking
-table(dat.checked$outlier$status)
- 0  2 
-99  1 
+table(dat.checked$outliers$status)
+  0   2 
+998   2 
 
 # frequency distribtuion of outliers
-table(dat.checked$outlier$num.outliers)
- 0  1  2  3  4  5  6  7  9 18 
-28 11 10 10 18 10  6  4  1  1
+table(dat.checked$outliers$num.outliers)
+  0   1   2   3   4   5   6   7   8  10  12  29  65 
+381 168 127 107  95  71  29   8   6   2   2   1   1 
 
 # remove genes with status flag other than 0
 counts <- dat.checked$count[dat.checked$outliers$status==0,]
 dim(counts)
-[1] 99   200
+[1] 998 200
 ```
 
 
@@ -280,33 +282,33 @@ Differential mean and dispersion analysis can be performed simultaneously using 
 
 ```r
 # using parallel process with 4 threads
-fit <- MDSeq(counts, X=X, U=X, contrast = groups, offsets = nf, mc.cores = 4)
+fit <- MDSeq(counts, X=X, U=X, contrast = groups, mc.cores = 4)
 4 threads are using!
-Total time elapsed:9.4 seconds
+Total time elapsed:46.45 seconds
 
 # simultaneously test zero-inflation
 head(fit$Dat[c("s","ZI.pval", "ZI")], 20)
                 s      ZI.pval ZI
-gene1  0.00000000 1.087272e-01  0
+gene1  0.00000000 3.650788e-01  0
 gene3  0.00000000 1.000000e+00  0
+gene5  0.17349096 1.068003e-08  1
 gene7  0.00000000 1.000000e+00  0
 gene9  0.00000000 1.000000e+00  0
-gene10 0.05020535 1.399395e-05  1
+gene10 0.05481349 1.558063e-04  1
 gene16 0.00000000 1.000000e+00  0
 gene24 0.00000000 1.000000e+00  0
 gene26 0.00000000 1.000000e+00  0
 gene28 0.00000000 1.000000e+00  0
 gene30 0.00000000 1.000000e+00  0
-gene36 0.10616926 2.621651e-02  1
+gene36 0.00000000 1.491088e-01  0
 gene37 0.00000000 1.000000e+00  0
-gene41 0.00000000 2.053253e-01  0
-gene42 0.00000000 1.299335e-01  0
-gene50 0.09224318 2.233739e-02  1
+gene41 0.00000000 5.567844e-01  0
+gene42 0.00000000 5.913142e-02  0
+gene50 0.00000000 1.429234e-01  0
 gene53 0.00000000 1.000000e+00  0
 gene55 0.00000000 1.000000e+00  0
-gene56 0.04319981 1.222741e-07  1
-gene59 0.02411948 1.083405e-02  1
-gene61 0.00000000 1.000000e+00  0
+gene56 0.04267595 3.833537e-07  1
+gene59 0.03085581 2.893198e-02  1
 ```
 
 
@@ -320,26 +322,26 @@ It is often of interest to identify genes with differential changes beyond a giv
 result <- extract.ZIMD(fit, compare = list(A="Case", B="Control"), log2FC.threshold = 1)
 head(result)
        CasevsControl.mean.log2FC.1 Statistics.mean  Pvalue.mean     FDR.mean
-gene1                   -2.1899929       101.59256 3.410050e-24 8.739282e-23
-gene3                    0.2019807         0.00000 1.000000e+00 1.000000e+00
-gene7                    0.1346394         0.00000 1.000000e+00 1.000000e+00
-gene9                    1.7598168        49.96804 7.813551e-13 1.334972e-11
-gene10                  -1.4337538        11.08457 4.352445e-04 6.029435e-03
-gene16                  -1.7313686       343.09159 6.769509e-77 2.669063e-75
+gene1                   -2.0565910       67.532875 1.036016e-16 4.984411e-15
+gene3                    0.3355959        0.000000 1.000000e+00 1.000000e+00
+gene5                    5.6413846      258.723106 1.628625e-58 1.801003e-56
+gene7                    0.2829549        0.000000 1.000000e+00 1.000000e+00
+gene9                    1.8537593       60.953911 2.921337e-15 1.311795e-13
+gene10                  -1.2218678        2.672263 5.105536e-02 1.000000e+00
        CasevsControl.dispersion.log2FC.1 Statistics.dispersion Pvalue.dispersion
-gene1                         -0.6000018             0.0000000      1.000000e+00
-gene3                         -0.3092432             0.0000000      1.000000e+00
-gene7                          1.1305998             0.1807466      3.353662e-01
-gene9                          2.4893128            23.9299494      4.995269e-07
-gene10                        -1.8636851             6.1933917      6.411410e-03
-gene16                        -1.4732579             2.3939073      6.090442e-02
+gene1                         -0.6741333              0.000000      1.000000e+00
+gene3                         -0.5708675              0.000000      1.000000e+00
+gene5                          4.1105016             11.422982      3.627059e-04
+gene7                          0.6381337              0.000000      1.000000e+00
+gene9                          2.3582872             19.289340      5.616587e-06
+gene10                        -1.5941946              2.970225      4.240502e-02
        FDR.dispersion
-gene1    1.000000e+00
-gene3    1.000000e+00
-gene7    1.000000e+00
-gene9    2.560377e-05
-gene10   2.053897e-01
-gene16   1.000000e+00
+gene1     1.000000000
+gene3     1.000000000
+gene5     0.025839821
+gene7     1.000000000
+gene9     0.000705324
+gene10    1.000000000
 ```
 
 <!-- Note that, in the result of threshold test, genes with incorrect estimations will be labeled as *NA*.-->

@@ -10,6 +10,7 @@
 
 <meta name="author" content="Di Ran and Z. John Daye" />
 
+<meta name="date" content="2017-03-23" />
 
 <title>MDSeq: Gene expression mean and variability analysis for RNA-seq counts</title>
 
@@ -63,7 +64,7 @@ img {
 <div id="header">
 <h1 class="title">MDSeq: Gene expression mean and variability analysis for RNA-seq counts</h1>
 <h4 class="author"><em>Di Ran and Z. John Daye</em></h4>
-<h4 class="date"><em>March 3, 2017</em></h4>
+<h4 class="date"><em>March 23, 2017</em></h4>
 </div>
 
 
@@ -122,15 +123,19 @@ summary(factor(group))
 <div id="filtering-and-normalization" class="section level1">
 <h1>Filtering and Normalization</h1>
 <p>We could filter out lowly expressed genes that provide little information for gene expression analysis. The function <em>filter.counts()</em> is provided in the MDSeq to filter lowly expressed genes. By default, it will remove genes whose mean counts per million (cpm) is less than 0.05. cpm is calculated using the edgeR package <span class="citation">(Robinson, McCarthy, and Smyth 2010)</span>. In this example, we applied a more stringent threshold with mean cpm greater than 0.1. As a result, 21992 high-quality genes were obtained from the original 49722 genes. We highly recommend users to remove lowly expressed genes for robust analysis of gene expression mean and variability. Different criteria or other methods can also be applied. For example, one could filter out more genes by setting a higher cutoff point of cpm; or one could include more genes by setting a smaller cutoff point.</p>
-<p>Since the MDSeq evaluates relative differences between treatments, results may be effected by technical biases due to compositional differences among libraries, and technical biasness should be taken into account by normalization. In this example, we computed the TMM normalization factors <span class="citation">(Robinson, McCarthy, and Smyth 2010)</span>. The normalization factors can be incorporated, in the MDSeq, as either normalized counts or offsets in the mean-dispersion GLMs. Offsets can be applied in the function <em>MDSeq()</em> by inputing normalization factors with the <em>offsets</em> parameter. The MDSeq also provides the function <em>normalize.counts()</em> which can calculate normalized counts based on different normalization methods, such as “upperquartile” <span class="citation">(Bullard et al. 2010)</span> and “RLE” <span class="citation">(Anders and Huber 2010)</span>. User could also apply more complex normalization approaches such as the “cqn”, which considers adjustment for both gene length and GC content. This optional method depends on the implement in R package “cqn” <span class="citation">(Hansen, Irizarry, and Wu 2012)</span>.</p>
+<p>Since the MDSeq evaluates relative differences between treatments, results may be effected by technical biases due to compositional differences among libraries, and technical biasness should be taken into account by normalization. In this example, we computed the TMM normalization factors <span class="citation">(Robinson, McCarthy, and Smyth 2010)</span>. The normalization factors can be incorporated, in the MDSeq, as either normalized counts or offsets in the mean-dispersion GLMs. The MDSeq provides the function <em>normalize.counts()</em> which can calculate normalized counts based on different normalization methods, such as “upperquartile” <span class="citation">(Bullard et al. 2010)</span> and “RLE” <span class="citation">(Anders and Huber 2010)</span>. User could also apply more complex normalization approaches such as the “cqn”, which considers adjustment for both gene length and GC content. This optional method depends on the implementation in the R package “cqn” <span class="citation">(Hansen, Irizarry, and Wu 2012)</span>. Offsets in the GLMs can also be applied in the function <em>MDSeq()</em> by incorporating normalization factors with the <em>offsets</em> parameter. In the analysis of large-scale RNA-seq data, the approaches of using normalized counts and offsets in the GLMs are largely equivalent, as effects of discretizing normalized counts are minute. However, in computing the mean-dispersion model, the dispersion of normalized counts are assumed to be overdispersed with <span class="math">\(\phi&gt;1\)</span> when normalized counts are used, whereas the dispersion of raw counts are assumed to be overdispersed with <span class="math">\(\phi_{raw}&gt;1\)</span> when offsets in the GLMs are applied. Further details are provided in Supplementary Methods of Ran and Daye (2017).</p>
 <pre class="r"><code># lowly expressed genes were filtered by mean cpm value across all samples
 dat.filtered &lt;- filter.counts(dat, mean.cpm.cutoff = 0.1)  
 dim(dat.filtered)
 [1] 21992   200
 
-# inlcuding normalization factor as an offset in mean-dispersion GLM
-# alternatively, normalized counts can be used as input
-# require(edgeR)
+# Using normalized counts 
+dat.normalized &lt;- normalize.counts(dat.filtered, group=group, method=&quot;TMM&quot;)
+Using TMM normaliztion.
+Calculating normalization(scaling) factors with the TMM method.
+Adjusting counts to rescaling factors.
+
+# including normalization factor as an offset in the mean-dispersion GLMs
 cnf &lt;- calcNormFactors(dat.filtered, method=&quot;TMM&quot;) 
 libsize &lt;- colSums(dat.filtered)              #normalization factor
 rellibsize &lt;- libsize/exp(mean(log(libsize))) #relative library size
@@ -249,72 +254,71 @@ Case      -1</code></pre>
 <div id="checking-and-removing-outliers" class="section level1">
 <h1>Checking and removing outliers</h1>
 <p>Outlier detection is an important step in RNA-seq studies to allow robust model estimation and inference. The MDSeq provides a computationally efficient procedure to detect outliers that are influential for statistical inference on a given set of parameters of interest <span class="citation">(Ran and Daye 2017)</span>. The function <em>remove.outlier()</em> will remove outliers and provide a summary of outlier detection. A count matrix of RNA-seq counts will be outputted, in which outliers are set to NA. A summary indicates the status (label=0 for successful detection) and numbers of outliers found at each gene. Outliers will be ignored in ensuing analyses.</p>
-<p>After outlier detection, outliers within a gene were replaced by <em>NA</em>. The mean-dispersion GLM utilizes the observed Fisher information to compute the variance-covariance matrix. In some rare scenarios, the observed Fisher information may be non-invertible. An error is flagged in these scenarios, even though an estimate may still be available. We recommend removing those genes with nonzero error flags from downstream analysis. Using the first 100 genes, we removed 1 gene and obtained 99 genes. Outliers were replaced by <em>NA</em> in the output.</p>
+<p>After outlier detection, outliers within a gene were replaced by <em>NA</em>. The mean-dispersion GLM utilizes the observed Fisher information to compute the variance-covariance matrix. In some rare scenarios, the observed Fisher information may be non-invertible. An error is flagged in these scenarios, even though an estimate may still be available. We recommend removing those genes with nonzero error flags from downstream analysis. Using the first 1,000 genes, we removed 2 genes and obtained 998 genes. Outliers were replaced by <em>NA</em> in the output.</p>
 <pre class="r"><code># Check outliers using parallel process with 4 threads
 # For the sake of simplicity, we demonstrate outlier detection 
-# by using the first 100 genes.
+# by using the first 1,000 genes.
 
-dat.checked &lt;- remove.outlier(dat.filtered[1:100, ], X=X, U=X, 
-                              contrast = groups, offsets = nf, 
-                              mc.cores = 4)
+dat.checked &lt;- remove.outlier(dat.normalized[1:1000, ], X=X, U=X, 
+                              contrast = groups, mc.cores = 4)
 4 threads are using!
-Total time elapsed:9.5 seconds
+Total time elapsed:62.74 seconds
 
-head(dat.checked$outlier)
+head(dat.checked$outliers)
        status num.outliers
-gene1       0            3
+gene1       0            1
 gene3       0            0
-gene5       2           NA
+gene5       0            1
 gene7       0            0
-gene9       0            4
-gene10      0            2
+gene9       0            2
+gene10      0            0
 
 # status of outlier checking
-table(dat.checked$outlier$status)
- 0  2 
-99  1 
+table(dat.checked$outliers$status)
+  0   2 
+998   2 
 
 # frequency distribtuion of outliers
-table(dat.checked$outlier$num.outliers)
- 0  1  2  3  4  5  6  7  9 18 
-28 11 10 10 18 10  6  4  1  1
+table(dat.checked$outliers$num.outliers)
+  0   1   2   3   4   5   6   7   8  10  12  29  65 
+381 168 127 107  95  71  29   8   6   2   2   1   1 
 
 # remove genes with status flag other than 0
 counts &lt;- dat.checked$count[dat.checked$outliers$status==0,]
 dim(counts)
-[1] 99   200</code></pre>
+[1] 998 200</code></pre>
 </div>
 <div id="differential-mean-and-dispersion-analysis" class="section level1">
 <h1>Differential mean and dispersion analysis</h1>
 <p>Differential mean and dispersion analysis can be performed simultaneously using the main function <em>MDSeq()</em>, which allows parallel processing with multiple threads. For experiments with many genes, one can take advantage of parallelized computation. For instance, an example data with 200 samples and around 20,000 genes will cost less than 30 minutes with 4 threads on a lab desktop. MDSeq requires at least several inputs, such as expression count matrix, optional covariates of the mean(X) and dispersion(U), design matrix with proper contrast setting. By default, this function will simultaneously test zero-inflation using a likelihood ratio test. One can also assess the goodness-of-fit of zero-inflation using function <em>gof.ZI()</em>. MDSeq will return an “ZIMD” class object. In this example, estimations are stored in <em>fit$Dat</em>, which contains not only the estimations of GLM coefficients but also the results for testing zero-inflation. For example, one can find “s” the estimated proportion of excess zeros, “ZI.pval” p-value of likelihood ratio test, and “ZI” zero-inflation indicator.</p>
 <pre class="r"><code># using parallel process with 4 threads
-fit &lt;- MDSeq(counts, X=X, U=X, contrast = groups, offsets = nf, mc.cores = 4)
+fit &lt;- MDSeq(counts, X=X, U=X, contrast = groups, mc.cores = 4)
 4 threads are using!
-Total time elapsed:9.4 seconds
+Total time elapsed:46.45 seconds
 
 # simultaneously test zero-inflation
 head(fit$Dat[c(&quot;s&quot;,&quot;ZI.pval&quot;, &quot;ZI&quot;)], 20)
                 s      ZI.pval ZI
-gene1  0.00000000 1.087272e-01  0
+gene1  0.00000000 3.650788e-01  0
 gene3  0.00000000 1.000000e+00  0
+gene5  0.17349096 1.068003e-08  1
 gene7  0.00000000 1.000000e+00  0
 gene9  0.00000000 1.000000e+00  0
-gene10 0.05020535 1.399395e-05  1
+gene10 0.05481349 1.558063e-04  1
 gene16 0.00000000 1.000000e+00  0
 gene24 0.00000000 1.000000e+00  0
 gene26 0.00000000 1.000000e+00  0
 gene28 0.00000000 1.000000e+00  0
 gene30 0.00000000 1.000000e+00  0
-gene36 0.10616926 2.621651e-02  1
+gene36 0.00000000 1.491088e-01  0
 gene37 0.00000000 1.000000e+00  0
-gene41 0.00000000 2.053253e-01  0
-gene42 0.00000000 1.299335e-01  0
-gene50 0.09224318 2.233739e-02  1
+gene41 0.00000000 5.567844e-01  0
+gene42 0.00000000 5.913142e-02  0
+gene50 0.00000000 1.429234e-01  0
 gene53 0.00000000 1.000000e+00  0
 gene55 0.00000000 1.000000e+00  0
-gene56 0.04319981 1.222741e-07  1
-gene59 0.02411948 1.083405e-02  1
-gene61 0.00000000 1.000000e+00  0</code></pre>
+gene56 0.04267595 3.833537e-07  1
+gene59 0.03085581 2.893198e-02  1</code></pre>
 <div id="testing-with-a-given-log2-fold-change" class="section level2">
 <h2>Testing with a given |log2|-fold-change</h2>
 <p>It is often of interest to identify genes with differential changes beyond a given threshold level that could more readily allow for experimental replication and biological interpretations. Traditional methods of statistical inference often focus on evaluating the compliant hypothesis that any change in differential expressions <span class="math">\(Ha: |log2FC| \neq 0\)</span> may occur. This would often result in the selection of a large proportion of genes that are only mildly differentially expressed and cannot be replicated experimentally, especially in RNA-seq studies with moderate to large numbers of samples. Therefore, we provided inequality hypothesis tests <span class="math">\(Ha: |log2FC| &gt; \tau\)</span> for both differential mean and dispersion that evaluate whether absolute log-fold changes are above a given threshold level <span class="math">\(\tau\)</span>. We applied a rigorous development based on one-sided hypothesis tests within restricted parameter spaces and union-intersection principle <span class="citation">(Ran and Daye 2017)</span>. The function <em>extract.ZIMD()</em> is provided in the MDSeq that incorporates inequality hypothesis tests. One can specify any |log2|-fold-change threshold “log2FC.threshold”, which will be applied on both mean and dispersion testing. In addition. this function offers the comparison between any possible single pair. One can test any comparison, such as “2 vs. 1” or “3 vs. 2” in a three-levels treatment, for example. To make a comparison “2 vs. 1”, one needs to specify “A=‘2’” and “B=‘1’” in the “compare” argument.</p>
@@ -322,26 +326,26 @@ gene61 0.00000000 1.000000e+00  0</code></pre>
 result &lt;- extract.ZIMD(fit, compare = list(A=&quot;Case&quot;, B=&quot;Control&quot;), log2FC.threshold = 1)
 head(result)
        CasevsControl.mean.log2FC.1 Statistics.mean  Pvalue.mean     FDR.mean
-gene1                   -2.1899929       101.59256 3.410050e-24 8.739282e-23
-gene3                    0.2019807         0.00000 1.000000e+00 1.000000e+00
-gene7                    0.1346394         0.00000 1.000000e+00 1.000000e+00
-gene9                    1.7598168        49.96804 7.813551e-13 1.334972e-11
-gene10                  -1.4337538        11.08457 4.352445e-04 6.029435e-03
-gene16                  -1.7313686       343.09159 6.769509e-77 2.669063e-75
+gene1                   -2.0565910       67.532875 1.036016e-16 4.984411e-15
+gene3                    0.3355959        0.000000 1.000000e+00 1.000000e+00
+gene5                    5.6413846      258.723106 1.628625e-58 1.801003e-56
+gene7                    0.2829549        0.000000 1.000000e+00 1.000000e+00
+gene9                    1.8537593       60.953911 2.921337e-15 1.311795e-13
+gene10                  -1.2218678        2.672263 5.105536e-02 1.000000e+00
        CasevsControl.dispersion.log2FC.1 Statistics.dispersion Pvalue.dispersion
-gene1                         -0.6000018             0.0000000      1.000000e+00
-gene3                         -0.3092432             0.0000000      1.000000e+00
-gene7                          1.1305998             0.1807466      3.353662e-01
-gene9                          2.4893128            23.9299494      4.995269e-07
-gene10                        -1.8636851             6.1933917      6.411410e-03
-gene16                        -1.4732579             2.3939073      6.090442e-02
+gene1                         -0.6741333              0.000000      1.000000e+00
+gene3                         -0.5708675              0.000000      1.000000e+00
+gene5                          4.1105016             11.422982      3.627059e-04
+gene7                          0.6381337              0.000000      1.000000e+00
+gene9                          2.3582872             19.289340      5.616587e-06
+gene10                        -1.5941946              2.970225      4.240502e-02
        FDR.dispersion
-gene1    1.000000e+00
-gene3    1.000000e+00
-gene7    1.000000e+00
-gene9    2.560377e-05
-gene10   2.053897e-01
-gene16   1.000000e+00</code></pre>
+gene1     1.000000000
+gene3     1.000000000
+gene5     0.025839821
+gene7     1.000000000
+gene9     0.000705324
+gene10    1.000000000</code></pre>
 <!-- Note that, in the result of threshold test, genes with incorrect estimations will be labeled as *NA*.-->
 </div>
 </div>
@@ -374,7 +378,7 @@ loaded via a namespace (and not attached):
 <p>Anders, Simon, and Wolfgang Huber. 2010. “Differential Expression Analysis for Sequence Count Data.” <em>Genome Biology</em> 11 (10). BioMed Central: 1.</p>
 <p>Bullard, James H, Elizabeth Purdom, Kasper D Hansen, and Sandrine Dudoit. 2010. “Evaluation of Statistical Methods for Normalization and Differential Expression in MRNA-Seq Experiments.” <em>BMC Bioinformatics</em> 11 (1). BioMed Central: 1.</p>
 <p>Hansen, Kasper D, Rafael A Irizarry, and Zhijin Wu. 2012. “Removing Technical Variability in RNA-Seq Data Using Conditional Quantile Normalization.” <em>Biostatistics</em> 13 (2). Biometrika Trust: 204–16.</p>
-<p>Ran, Di, and Z. John Daye. 2017. “Gene Expression Variability and the Analysis of Large-Scale RNA-Seq Studies with the MDSeq.”</p>
+<p>Ran, Di, and Z. John Daye. 2017. “Gene Expression Variability and the Analysis of Large-Scale RNA-Seq Studies with the MDSeq.” <em>Nucleic Acids Research.</em> doi: 10.1093/nar/gkx456.</p>
 <p>Robinson, Mark D, Davis J McCarthy, and Gordon K Smyth. 2010. “EdgeR: A Bioconductor Package for Differential Expression Analysis of Digital Gene Expression Data.” <em>Bioinformatics</em> 26 (1). Oxford Univ Press: 139–40.</p>
 </div>
 </div>
