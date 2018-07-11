@@ -53,6 +53,12 @@ a list containing updated count data and summary information.
                  if 'status' is not equal to 0, it indicates an error occurred in the checking process.
                  2. num.outliers, numbers of outliers found at each gene.}
 }
+\details{
+  MDSeq requires sufficient samples and variability within samples to provide variance estimation.  
+  Status=1 error will be produced if sample size minus numbers of outliers is less than min.sample.size (with default at 50), 
+  and Status=2 error will be produced when variance cannot be estimated, such as when all cases or all controls have zero counts.  
+  The MDSeq does not pool variances across genes in order to allow the interpretation of gene expression variability.
+}
 \description{
 Outlier influential upon the effects of specific covariate/covariates will be removed 
 from a matix of count data.
